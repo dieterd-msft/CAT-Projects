@@ -1,0 +1,3 @@
+CALL CreateContact
+CALL GetContacts
+# Tested with Power Automate Desktop version 2.38.182.23307

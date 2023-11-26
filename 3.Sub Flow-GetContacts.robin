@@ -1,0 +1,29 @@
+FUNCTION GetContacts GLOBAL
+    CALL GetBearerToken
+    Web.InvokeWebService.InvokeWebService Url: $'''%DataverseConnection.API%/api/data/v9.2/contacts?$top=3''' Method: Web.Method.Get Accept: $'''*/*''' ContentType: $'''multipart/form-data; boundary=BoundaryData''' CustomHeaders: $'''Authorization: Bearer %DataverseBearerToken.Token%''' RequestBody: $'''--BoundaryData
+Content-Disposition: form-data; name=\"resource\"
+
+%DataverseConnection.API%
+--BoundaryData
+Content-Disposition: form-data; name=\"client_id\"
+
+%DataverseConnection.ClientID%
+--BoundaryData
+Content-Disposition: form-data; name=\"client_secret\"
+
+%DataverseConnection.ClientSecret%
+--BoundaryData
+Content-Disposition: form-data; name=\"grant_type\"
+
+client_credentials
+--BoundaryData--''' ConnectionTimeout: 30 FollowRedirection: True ClearCookies: False FailOnErrorStatus: False EncodeRequestBody: False UserAgent: $'''Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.21) Gecko/20100312 Firefox/3.6''' Encoding: Web.Encoding.AutoDetect AcceptUntrustedCertificates: False ResponseHeaders=> GetContactsWSResponseHeaders Response=> GetContactsWSResponse StatusCode=> GetContactsStatusCode
+    IF StartsWith(GetContactsStatusCode, 20, True) THEN
+        Variables.ConvertJsonToCustomObject Json: GetContactsWSResponse CustomObject=> GetContactsObj
+        LOOP FOREACH CurrentItem IN GetContactsObj.value
+            Display.ShowMessageDialog.ShowMessage Title: $'''Found Contact''' Message: CurrentItem.fullname Icon: Display.Icon.None Buttons: Display.Buttons.OK DefaultButton: Display.DefaultButton.Button1 IsTopMost: False ButtonPressed=> ButtonPressed
+        END
+    ELSE
+        Display.ShowMessageDialog.ShowMessage Title: $'''Error Contact''' Message: $'''Failed to get contacts: %GetContactsWSResponse%''' Icon: Display.Icon.ErrorIcon Buttons: Display.Buttons.OK DefaultButton: Display.DefaultButton.Button1 IsTopMost: False ButtonPressed=> ButtonPressed
+    END
+END FUNCTION
+# Tested with Power Automate Desktop version 2.38.182.23307

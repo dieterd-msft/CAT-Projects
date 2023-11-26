@@ -1,0 +1,43 @@
+Variables.ConvertJsonToCustomObject Json: $'''{ \'TenantID\': \'65e4...\', \'ClientID\': \'34ff...\',  \'ClientSecret\': \'Z0Z...j\'
+, \'API\': \'https://xxx.api.crm.dynamics.com/\' }''' CustomObject=> DataverseConnection
+**REGION Check Token
+# Check Token Expiry
+IF IsNotEmpty(DataverseBearerToken) THEN
+    DateTime.GetCurrentDateTime.Current DateTimeFormat: DateTime.DateTimeFormat.DateAndTime Offset: $'''UTC''' CurrentDateTime=> CurrentDateTime
+    # When Token is still valid
+    IF DataverseBearerToken['ExpiryDate'] >= CurrentDateTime THEN
+        GOTO 'Valid BearerToken'
+    END
+END
+**ENDREGION
+**REGION Request Token
+# Request new Token
+Web.InvokeWebService.InvokeWebService Url: $'''https://login.microsoftonline.com/%DataverseConnection.TenantID%/oauth2/v2.0/token''' Method: Web.Method.Post Accept: $'''*/*''' ContentType: $'''multipart/form-data; boundary=BoundaryData''' RequestBody: $'''--BoundaryData
+Content-Disposition: form-data; name=\"client_id\"
+
+%DataverseConnection.ClientID%
+--BoundaryData
+Content-Disposition: form-data; name=\"client_secret\"
+
+%DataverseConnection.ClientSecret%
+--BoundaryData
+Content-Disposition: form-data; name=\"scope\"
+
+%DataverseConnection.API%/.default
+--BoundaryData
+Content-Disposition: form-data; name=\"grant_type\"
+
+client_credentials
+--BoundaryData--''' ConnectionTimeout: 30 FollowRedirection: True ClearCookies: False FailOnErrorStatus: False EncodeRequestBody: False UserAgent: $'''Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.21) Gecko/20100312 Firefox/3.6''' Encoding: Web.Encoding.AutoDetect AcceptUntrustedCertificates: False ResponseHeaders=> GetTokenWSResponseHeaders Response=> GetTokenWSResponse StatusCode=> GetTokenStatusCode
+IF StartsWith(GetTokenStatusCode, 20, True) THEN
+    Variables.ConvertJsonToCustomObject Json: GetTokenWSResponse CustomObject=> BearerTokenResponse
+    DateTime.GetCurrentDateTime.Current DateTimeFormat: DateTime.DateTimeFormat.DateAndTime Offset: $'''UTC''' CurrentDateTime=> CurrentDateTime
+    DateTime.Add DateTime: CurrentDateTime TimeToAdd: BearerTokenResponse.expires_in TimeUnit: DateTime.TimeUnit.Seconds ResultedDate=> TokenExpiryDate
+    Variables.ConvertJsonToCustomObject Json: $'''{\'Token\':\'%BearerTokenResponse.access_token%\',\'ExpiryDate\':\'%TokenExpiryDate%\'}''' CustomObject=> DataverseBearerToken
+ELSE
+    Logging.LogMessage Message: $'''Unable to request token: %GetTokenWSResponse%''' LogLevel: Logging.LogLevel.ErrorLevel
+    EXIT Code: 0 ErrorMessage: GetTokenWSResponse
+END
+**ENDREGION
+LABEL 'Valid BearerToken'
+# Tested with Power Automate Desktop version 2.38.182.23307

@@ -1,0 +1,11 @@
+FUNCTION CreateContact GLOBAL
+    CALL GetBearerToken
+    SET NewContactJSON TO $'''{\'firstname\':\'dummy\',\'lastname\':\'dummy\'}'''
+    Web.InvokeWebService.InvokeWebService Url: $'''%DataverseConnection.API%/api/data/v9.2/contacts''' Method: Web.Method.Post Accept: $'''application/json''' ContentType: $'''application/json''' CustomHeaders: $'''Authorization: Bearer %DataverseBearerToken.Token%''' RequestBody: NewContactJSON ConnectionTimeout: 30 FollowRedirection: True ClearCookies: False FailOnErrorStatus: False EncodeRequestBody: False UserAgent: $'''Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.21) Gecko/20100312 Firefox/3.6''' Encoding: Web.Encoding.AutoDetect AcceptUntrustedCertificates: False ResponseHeaders=> CreateContactWSResponseHeaders Response=> CreateContactWSResponse StatusCode=> CreateContactStatusCode
+    IF StartsWith(CreateContactStatusCode, 20, True) THEN
+        Display.ShowMessageDialog.ShowMessage Title: $'''Create Contact''' Message: $'''Contact created!''' Icon: Display.Icon.None Buttons: Display.Buttons.OK DefaultButton: Display.DefaultButton.Button1 IsTopMost: False ButtonPressed=> ButtonPressed
+    ELSE
+        Display.ShowMessageDialog.ShowMessage Title: $'''Error Contact''' Message: $'''Failed to create contact: %CreateContactWSResponse%''' Icon: Display.Icon.ErrorIcon Buttons: Display.Buttons.OK DefaultButton: Display.DefaultButton.Button1 IsTopMost: False ButtonPressed=> ButtonPressed
+    END
+END FUNCTION
+# Tested with Power Automate Desktop version 2.38.182.23307
