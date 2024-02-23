@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>$(ProjectName)</AssemblyName>
+    <Version>1.0.0.0000</Version>
+    <AssemblyTitle>HelloWorld</AssemblyTitle>
+    <TargetFramework>net47</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.PowerPlatform.PowerAutomate.Desktop.Actions.SDK" Version="1.4.237.23279" />
+  </ItemGroup>
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="xcopy &quot;$(ProjectDir)\bin\$(Configuration)\$(TargetFramework)\*.dll&quot; &quot;$(ProjectDir)\customaction\dll&quot; /y /exclude:$(ProjectDir)scripts\Exclude.txt&#xD;&#xA;call &quot;$(ProjectDir)scripts\Sign.bat&quot; &quot;.\customaction\pfx\PowerAutomateActions.pfx&quot; &quot;$(ProjectDir)\customaction\dll&quot; &quot;Pass@w0rd!&quot;&#xD;&#xA;powershell -NoProfile -ExecutionPolicy RemoteSigned -file &quot;$(ProjectDir)scripts\CreateCab.ps1&quot; &quot;$(ProjectDir)\customaction\dll&quot; &quot;$(ProjectDir)\customaction\cab&quot; &quot;$(MSBuildProjectName).cab&quot;&#xD;&#xA;call &quot;$(ProjectDir)scripts\Sign.bat&quot; &quot;$(ProjectDir)\customaction\pfx\PowerAutomateActions.pfx&quot; &quot;$(ProjectDir)\customaction\cab&quot; &quot;Pass@w0rd!&quot;&#xD;&#xA;del &quot;$(ProjectDir)\setup.inf&quot;&#xD;&#xA;del &quot;$(ProjectDir)\setup.rpt&quot;" />
+  </Target>
+
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+    <Exec Command="del &quot;$(ProjectDir)\customaction\dll\*.dll&quot;&#xD;&#xA;del &quot;$(ProjectDir)\customaction\cab\*.cab&quot;" />
+  </Target>
+</Project>
+
